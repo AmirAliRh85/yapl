@@ -1,4 +1,7 @@
-#include "../include/Scanner.hpp";
+#include "../include/Scanner.hpp"
+
+#define _STRINGIFY(x) #x
+#define STRINGIFY(x) _STRINGIFY(x)
 
 const std::unordered_map<const char* , TokenType> tokens = {
     {"if" , IF},
@@ -13,7 +16,7 @@ const std::unordered_map<const char* , TokenType> tokens = {
 Scanner::Scanner(const char* file_path , const unsigned int buffer_size)
 {
     filePath = file_path;
-    // bufferSize = buffer_size;
+    source = NULL;
 
     start = 0;
     current = 0;
@@ -23,7 +26,6 @@ Scanner::Scanner(const char* file_path , const unsigned int buffer_size)
 Scanner::Scanner(const char* file_path)
 {
     filePath = file_path;
-    // bufferSize = MAX_BUFFER_SIZE;
     source = NULL;
     
     start = 0;
@@ -37,7 +39,7 @@ void Scanner::openFileAll()
     
     if (!file)
     {
-        printf("Failed to read file\n");
+        printf("[ERROR] Failed to read file\n");
         return;
     }
 
@@ -51,18 +53,33 @@ void Scanner::openFileAll()
     source[got] = '\0';
 
     fclose(file);
-
-    printf(source);
 }
 
 
 std::vector<Token>* Scanner::generateToken()
 {
-    while (isAtEnd())
+    openFileAll();
+
+    if (source == NULL)
+    {
+        printf("[ERROR] Failed to retrieve the source file\n");
+        return NULL;
+    }
+
+    while (!isAtEnd())
     {
         start = current;
         scanToken();
     }
+
+    addToken(END_OF_FILE);
+
+    for (Token t : tokens)
+    {
+        printf("%i | %.1f , %s , %s\n" , t.line , t.numValue , t.strValue , tokenTypeToStr(t.tokenType));
+    }
+
+    return &tokens;
 }
 
 void Scanner::scanToken()
@@ -72,7 +89,7 @@ void Scanner::scanToken()
     switch (c)
     {
         case '(' : addToken(LEFT_PAREN); break;
-        case ')' : addToken(RIGHT_BRACE); break;
+        case ')' : addToken(RIGHT_PAREN); break;
         case '{' : addToken(LEFT_BRACE); break;
         case '}' : addToken(RIGHT_BRACE); break;
         case ',' : addToken(COMMA); break;
@@ -83,7 +100,7 @@ void Scanner::scanToken()
         case '*' : addToken(STAR); break;
 
         case '!' :
-            if (peek(1) == '=')
+            if (peek() == '=')
             {
                 addToken(BANG_EQUAL);
                 advance();
@@ -95,7 +112,7 @@ void Scanner::scanToken()
             break;
 
         case '=' :
-            if (peek(1) == '=')
+            if (peek() == '=')
             {
                 addToken(EQUAL_EQUAL);
                 advance();
@@ -107,7 +124,7 @@ void Scanner::scanToken()
             break;
 
         case '<' :
-            if (peek(1) == '=')
+            if (peek() == '=')
             {
                 addToken(LESS_EQUAL);
                 advance();
@@ -119,7 +136,7 @@ void Scanner::scanToken()
             break;
 
         case '>' :
-            if (peek(1) == '=')
+            if (peek() == '=')
             {
                 addToken(GREATER_EQUAL);
                 advance();
@@ -130,7 +147,36 @@ void Scanner::scanToken()
             }
             break;
 
-        
+        case ' ' : break;
+        case '\t' : break;
+        case '\r' : break;
+
+        case '\n' :
+            line++;
+            break;
+
+        case '/' :
+            if (peek(1) == '/')
+            {
+                while (peek(0) != '\n' && !isAtEnd())
+                    advance();
+            }
+            else
+            {
+                addToken(SLASH);
+            }
+
+        default :
+            if (isDigit(c))
+            {
+                number();
+            }
+            else if (c == '"')
+            {
+                string();
+            }
+            else
+                break;
 
     }
 }
@@ -142,7 +188,7 @@ char Scanner::peek(int n)
 
 char Scanner::advance()
 {
-    source[current++];
+    return source[current++];
 }
 
 bool Scanner::isAtEnd()
@@ -165,7 +211,54 @@ bool Scanner::isAlphaNumeric(char c)
     return isDigit(c) || isAlpha(c);
 }
 
-void Scanner::addToken(TokenType token_type)
+bool Scanner::isWhitespace(char c)
 {
-    tokens.push_back((Token){NULL , 0 , token_type , line});
+    return c == '\n' || c == ' ' || c == '\t' || c == '\r';
+}
+
+void Scanner::number()
+{
+    bool has_left_side = false;
+    bool is_float = false;
+    bool has_right_side = false;
+
+    char num[64];
+    int idx = 0;
+
+    num[idx++] = peek(-1);
+
+    while (isDigit(peek()))
+    {
+        num[idx++] = peek();
+        advance();
+        has_left_side = true;
+    }
+
+    if (peek() == '.')
+    {
+        num[idx++] = '.';
+        advance();
+        is_float = true;
+
+        while (isDigit(peek()))
+        {
+            num[idx++] = peek();
+            advance();
+            has_right_side = true;
+        }
+    }
+
+    num[idx] = '\0';
+
+    addToken(NUMBER , NULL , std::atof(num));   
+}
+
+void Scanner::string()
+{
+    return;
+}
+
+void Scanner::addToken(TokenType token_type , const char* str_val , double val)
+{
+    tokens.push_back((Token){str_val , val , token_type , line});
 }

@@ -27,8 +27,9 @@ class Scanner
 
         void openFileAll();
         void openFileBuffer();
+        void scanToken();
 
-        char peek(int n);
+        char peek(int n = 0);
 
         char advance();
         bool isAtEnd();
@@ -36,10 +37,12 @@ class Scanner
         bool isDigit(char c);
         bool isAlpha(char c);
         bool isAlphaNumeric(char c);
+        bool isWhitespace(char c);
 
-        void addToken(TokenType token_type);
+        void number();
+        void string();
 
-        void scanToken();
+        void addToken(TokenType token_type , const char* str_val = NULL , double val = 0.0);
 
     public :
         Scanner(const char* file_path , const unsigned int buffer_size);

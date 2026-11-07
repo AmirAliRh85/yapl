@@ -4,15 +4,14 @@
 void interpretFile(const char* file_path)
 {
     Scanner scanner(file_path);
-    std::vector<Token>* tokens = scanner.scanToken();
+    std::vector<Token>* tokens = scanner.generateToken();
 }
 
 int main(int argc , char* argv[])
 {
-    if (argc <= 1)
+    if (argc == 1)
     {
         printf("Usage: yapl [filename.japl]");
-        return 1;
     }
     else if (argc == 2)
     {
@@ -22,4 +21,6 @@ int main(int argc , char* argv[])
     {
         printf("yapl compiler does not support flags");
     }
+
+    return 0;
 }
